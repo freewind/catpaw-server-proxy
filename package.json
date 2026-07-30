@@ -1,0 +1,28 @@
+{
+  "name": "catpaw-server-proxy",
+  "version": "1.0.0",
+  "description": "CatPaw 服务器部署版 - 独立部署的 OpenAI 兼容 API 代理",
+  "type": "module",
+  "main": "server-standalone.mjs",
+  "scripts": {
+    "start": "node server-standalone.mjs",
+    "server": "node server-standalone.mjs",
+    "dev": "node server-standalone.mjs --verbose"
+  },
+  "keywords": [
+    "catpaw",
+    "api",
+    "proxy",
+    "openai",
+    "sse",
+    "ai",
+    "llm",
+    "server",
+    "standalone"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

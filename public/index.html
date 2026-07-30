@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CatPaw Reverse Proxy · API Playground</title>
+<style>
+:root {
+  --bg: #0f1117; --bg-card: #181b24; --bg-hover: #1e2230;
+  --border: #2a2e3d; --text: #e4e6ef; --text-dim: #8b8fa3;
+  --accent: #7c5cfc; --accent-dim: #5a3fd0;
+  --green: #3dd68c; --red: #f0556d; --orange: #ffa940; --blue: #4dabf7;
+  --radius: 10px;
+  --mono: 'JetBrains Mono','Cascadia Code','Fira Code',Consolas,monospace;
+  --sans: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);line-height:1.6}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+nav{position:sticky;top:0;z-index:100;background:rgba(15,17,23,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:32px;height:56px}
+nav .logo{font-weight:700;font-size:17px;display:flex;align-items:center;gap:10px;white-space:nowrap}
+nav .logo .dot{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+nav .links{display:flex;gap:6px}
+nav .links a{padding:6px 14px;border-radius:8px;font-size:14px;color:var(--text-dim);transition:all .15s;cursor:pointer}
+nav .links a:hover,nav .links a.active{background:var(--bg-hover);color:var(--text);text-decoration:none}
+nav .status{margin-left:auto;font-size:13px;color:var(--text-dim);display:flex;align-items:center;gap:8px}
+nav .status .badge{padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600}
+nav .status .badge.ok{background:rgba(61,214,140,.15);color:var(--green)}
+nav .status .badge.err{background:rgba(240,85,109,.15);color:var(--red)}
+.container{max-width:1100px;margin:0 auto;padding:32px 24px 80px}
+.section{margin-bottom:48px}
+.section h2{font-size:22px;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.section h2 .num{width:30px;height:30px;border-radius:8px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700}
+.section h3{font-size:16px;margin:20px 0 10px}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.card .title{font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+pre,code{font-family:var(--mono);font-size:13px}
+pre{background:#0a0c12;border:1px solid var(--border);border-radius:8px;padding:14px 16px;overflow-x:auto;margin:10px 0;line-height:1.5}
+code.inline{background:var(--bg-hover);padding:2px 6px;border-radius:4px;font-size:13px;color:var(--blue)}
+.endpoint{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;margin-bottom:8px}
+.endpoint .method{font-family:var(--mono);font-weight:700;padding:3px 10px;border-radius:5px;font-size:12px;min-width:56px;text-align:center}
+.endpoint .method.GET{background:rgba(77,171,247,.15);color:var(--blue)}
+.endpoint .method.POST{background:rgba(61,214,140,.15);color:var(--green)}
+.endpoint .path{font-family:var(--mono);font-size:14px}
+.endpoint .desc{color:var(--text-dim);font-size:13px;margin-left:auto}
+.playground{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:768px){.playground{grid-template-columns:1fr}}
+.playground .panel{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);display:flex;flex-direction:column;min-height:420px}
+.playground .panel .head{padding:12px 16px;border-bottom:1px solid var(--border);font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px}
+.playground .panel .body{flex:1;padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto}
+.playground textarea{background:#0a0c12;border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--text);font-family:var(--sans);font-size:14px;resize:vertical;min-height:100px;outline:none;transition:border-color .15s}
+.playground textarea:focus{border-color:var(--accent)}
+.playground .output{background:#0a0c12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word;flex:1;overflow-y:auto;min-height:200px}
+.playground .output .reasoning{color:var(--text-dim);font-style:italic}
+.playground .output .tool{color:var(--orange)}
+.playground .output .error{color:var(--red)}
+.playground .output .cursor{animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.controls select,.controls input[type="text"]{background:#0a0c12;border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;outline:none}
+.controls select:focus,.controls input:focus{border-color:var(--accent)}
+.controls label{font-size:13px;color:var(--text-dim);display:flex;align-items:center;gap:6px;cursor:pointer}
+.btn{padding:9px 20px;border-radius:8px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:8px}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent-dim)}.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-secondary{background:var(--bg-hover);color:var(--text);border:1px solid var(--border)}.btn-secondary:hover{background:var(--border)}
+.toggle{position:relative;width:40px;height:22px;background:var(--border);border-radius:20px;cursor:pointer;transition:background .2s}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform .2s}
+.toggle.on{background:var(--accent)}.toggle.on::after{transform:translateX(18px)}
+.model-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.model-card{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:14px;cursor:pointer;transition:all .15s}
+.model-card:hover{border-color:var(--accent);background:var(--bg-hover)}
+.model-card .id{font-family:var(--mono);font-size:13px;color:var(--blue)}
+.model-card .name{font-weight:600;margin:4px 0}
+.model-card .desc{font-size:12px;color:var(--text-dim)}
+.steps{counter-reset:step}
+.step{position:relative;padding-left:40px;margin-bottom:20px}
+.step::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:0;width:28px;height:28px;background:var(--accent);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+.step h4{font-size:15px;margin-bottom:6px}
+.step p{font-size:14px;color:var(--text-dim)}
+.step .warn{margin-top:8px;padding:8px 12px;background:rgba(255,169,64,.1);border-left:3px solid var(--orange);border-radius:4px;font-size:13px;color:var(--orange)}
+.tabs{display:flex;gap:4px;margin-bottom:12px}
+.tab{padding:8px 16px;border-radius:8px 8px 0 0;font-size:14px;cursor:pointer;color:var(--text-dim);border-bottom:2px solid transparent;transition:all .15s}
+.tab:hover{color:var(--text)}.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-content{display:none}.tab-content.active{display:block}
+.spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.meta-info{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--text-dim)}
+.meta-info span{display:flex;align-items:center;gap:4px}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}::-webkit-scrollbar-thumb:hover{background:var(--text-dim)}
+/* QR Login */
+.qr-container{display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start}
+.qr-box{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;text-align:center;min-width:280px}
+.qr-box .qr-frame{width:220px;height:220px;margin:0 auto 16px;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;position:relative}
+.qr-box .qr-frame img{max-width:200px;max-height:200px;border-radius:4px}
+.qr-box .qr-frame .placeholder{color:#999;font-size:14px;text-align:center;padding:20px}
+.qr-box .qr-frame .expired{position:absolute;inset:0;background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;border-radius:8px}
+.qr-status{font-size:14px;color:var(--text-dim);margin-top:8px}
+.qr-link{word-break:break-all;font-size:12px;font-family:var(--mono);background:#0a0c12;padding:8px;border-radius:4px;margin-top:8px;color:var(--blue)}
+.user-info{display:flex;align-items:center;gap:12px;padding:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)}
+.user-avatar{width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff}
+.login-section{display:flex;gap:32px;flex-wrap:wrap}
+.login-section>div{flex:1;min-width:300px}
+/* Config Panel */
+.config-panel{display:grid;gap:16px;max-width:600px}
+.config-field{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px}
+.config-field .label{font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.config-field .desc{font-size:13px;color:var(--text-dim);margin-bottom:10px}
+.config-field input[type="text"],.config-field input[type="password"]{width:100%;background:#0a0c12;border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--mono);outline:none;transition:border-color .15s}
+.config-field input:focus{border-color:var(--accent)}
+.config-field .row{display:flex;gap:10px;align-items:center}
+.config-badge{padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600}
+.config-badge.on{background:rgba(61,214,140,.15);color:var(--green)}
+.config-badge.off{background:rgba(240,85,109,.1);color:var(--red)}
+.config-msg{margin-top:10px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.config-msg.success{display:block;background:rgba(61,214,140,.1);color:var(--green);border-left:3px solid var(--green)}
+.config-msg.error{display:block;background:rgba(240,85,109,.1);color:var(--red);border-left:3px solid var(--red)}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo"><span class="dot" id="navDot"></span>CatPaw Reverse Proxy</div>
+  <div class="links">
+    <a data-target="playground" class="active">在线测试</a>
+    <a data-target="login-section">扫码登录</a>
+    <a data-target="docs">API 文档</a>
+    <a data-target="setup">登录配置</a>
+    <a data-target="config-panel">安全配置</a>
+    <a data-target="models">模型列表</a>
+  </div>
+  <div class="status">
+    <span id="navStatus">检查中...</span>
+    <span class="badge ok" id="navBadge">ONLINE</span>
+  </div>
+</nav>
+
+<div class="container">
+
+<!-- ════════ Login Section ════════ -->
+<div class="section" id="login-section">
+  <h2><span class="num">🔐</span> 扫码登录</h2>
+  <p style="color:var(--text-dim);margin-bottom:20px">通过美团 SSO 登录获取认证 Token，无需启动 CatPaw 桌面应用即可使用 API。</p>
+  
+  <div class="login-section">
+    <!-- Left: Login Action -->
+    <div>
+      <div class="qr-box" id="qrBox">
+        <div id="qrFrame" style="min-height:200px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px">
+          <div style="font-size:48px">🔐</div>
+          <div style="color:var(--text-dim);text-align:center">点击下方按钮跳转至美团登录页面<br>登录页面将显示二维码供手机扫描</div>
+        </div>
+        <div class="qr-status" id="qrStatus">准备登录...</div>
+        <button class="btn btn-primary" id="qrBtn" onclick="startQRLogin()" style="margin-top:12px">
+          🚀 打开登录页面
+        </button>
+      </div>
+    </div>
+    
+    <!-- Right: Login Info -->
+    <div>
+      <div class="card" id="loginStatusCard">
+        <div class="title">📋 登录状态</div>
+        <div id="loginStatusContent">
+          <p style="color:var(--text-dim)">尚未登录，请点击左侧按钮开始登录。</p>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="title">📖 登录流程说明</div>
+        <ol style="padding-left:20px;color:var(--text-dim);font-size:14px;line-height:2">
+          <li>点击"打开登录页面"按钮</li>
+          <li>在新打开的页面中，用手机美团 APP 扫描二维码</li>
+          <li>在手机上确认登录</li>
+          <li>页面自动跳转，系统获取 Token 并保存</li>
+        </ol>
+        <div class="warn" style="margin-top:8px;padding:8px 12px;background:rgba(255,169,64,.1);border-left:3px solid var(--orange);border-radius:4px;font-size:13px;color:var(--orange)">
+          ⚠️ 登录有效期 5 分钟，过期后需重新发起。登录成功后可关闭新页面。
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ Playground ════════ -->
+<div class="section" id="playground">
+  <h2><span class="num">🚀</span> 在线测试 Playground</h2>
+  <div class="playground">
+    <div class="panel">
+      <div class="head">📝 请求配置</div>
+      <div class="body">
+        <div class="controls">
+          <label>模型</label>
+          <select id="modelSelect" style="min-width:160px"><option value="auto">加载中...</option></select>
+        </div>
+        <div class="controls">
+          <label>流式输出</label>
+          <div class="toggle on" id="streamToggle"></div>
+          <input type="hidden" id="streamVal" value="true">
+        </div>
+        <div class="controls">
+          <label>会话 ID (可选)</label>
+          <input type="text" id="convId" placeholder="留空=新对话" style="flex:1">
+        </div>
+        <div class="controls">
+          <label>API Key</label>
+          <input type="password" id="playgroundApiKey" placeholder="如果服务器设置了 API Key，请在此输入" style="flex:1;font-family:var(--mono);font-size:13px">
+        </div>
+        <textarea id="messageInput" placeholder="输入你的消息..." style="flex:1">你好，请用一句话介绍你自己</textarea>
+        <div class="controls">
+          <button class="btn btn-primary" id="sendBtn" onclick="sendMessage()"><span id="sendIcon">▶</span> 发送</button>
+          <button class="btn btn-secondary" onclick="clearOutput()">清空</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="head">💬 响应输出 <span style="margin-left:auto;font-size:12px;color:var(--text-dim)" id="latencyInfo"></span></div>
+      <div class="body">
+        <div class="output" id="outputArea"><span style="color:var(--text-dim)">点击"发送"开始测试...</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ API Docs ════════ -->
+<div class="section" id="docs">
+  <h2><span class="num">📚</span> API 文档</h2>
+  <div class="card">
+    <div class="title">Base URL</div>
+    <code class="inline" id="baseUrl">http://127.0.0.1:3000</code>
+    <p style="margin-top:8px;color:var(--text-dim);font-size:14px">所有 API 均兼容 OpenAI 格式，可直接对接支持自定义 Base URL 的客户端。</p>
+  </div>
+  <h3>端点列表</h3>
+  <div class="endpoint"><span class="method GET">GET</span><span class="path">/</span><span class="desc">UI 界面 / 在线测试</span></div>
+  <div class="endpoint"><span class="method POST">POST</span><span class="path">/v1/chat/completions</span><span class="desc">对话补全（支持流式）</span></div>
+  <div class="endpoint"><span class="method GET">GET</span><span class="path">/v1/models</span><span class="desc">获取可用模型列表</span></div>
+  <div class="endpoint"><span class="method GET">GET</span><span class="path">/health</span><span class="desc">健康检查</span></div>
+  <div class="endpoint"><span class="method POST">POST</span><span class="path">/api/login/start</span><span class="desc">发起扫码登录</span></div>
+  <div class="endpoint"><span class="method GET">GET</span><span class="path">/api/login/poll?sid=</span><span class="desc">轮询登录状态</span></div>
+  <div class="endpoint"><span class="method GET">GET</span><span class="path">/api/auth/status</span><span class="desc">查询认证状态</span></div>
+
+  <div class="tabs" style="margin-top:24px">
+    <div class="tab active" onclick="switchTab(event,'tab-curl')">cURL</div>
+    <div class="tab" onclick="switchTab(event,'tab-js')">JavaScript</div>
+    <div class="tab" onclick="switchTab(event,'tab-python')">Python</div>
+    <div class="tab" onclick="switchTab(event,'tab-openai')">OpenAI SDK</div>
+  </div>
+  <div id="tab-curl" class="tab-content active">
+    <h3>流式请求</h3>
+<pre><code>curl -N http://127.0.0.1:3000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"auto","messages":[{"role":"user","content":"你好"}],"stream":true}'</code></pre>
+    <h3>指定工作目录</h3>
+<pre><code>curl -N http://127.0.0.1:3000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "X-Working-Directory: D:/projects/myapp" \
+  -d '{"model":"auto","messages":[{"role":"user","content":"列出当前目录文件"}],"dir":"D:/projects/myapp","stream":true}'</code></pre>
+    <h3>非流式请求</h3>
+<pre><code>curl http://127.0.0.1:3000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"0","messages":[{"role":"user","content":"1+1=?"}],"stream":false}'</code></pre>
+  </div>
+  <div id="tab-js" class="tab-content">
+<pre><code>const res = await fetch('http://127.0.0.1:3000/v1/chat/completions', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    model: 'auto',
+    messages: [{ role: 'user', content: '你好' }],
+    stream: true,
+  }),
+});
+const reader = res.body.getReader();
+const decoder = new TextDecoder();
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  const text = decoder.decode(value);
+  text.split('\n').forEach(line => {
+    if (line.startsWith('data: ')) {
+      const data = line.slice(6);
+      if (data === '[DONE]') return;
+      const chunk = JSON.parse(data);
+      const content = chunk.choices?.[0]?.delta?.content;
+      if (content) process.stdout.write(content);
+    }
+  });
+}</code></pre>
+  </div>
+  <div id="tab-python" class="tab-content">
+<pre><code>import requests, json
+
+res = requests.post(
+    "http://127.0.0.1:3000/v1/chat/completions",
+    json={"model": "auto", "messages": [{"role": "user", "content": "你好"}], "stream": True},
+    stream=True,
+)
+for line in res.iter_lines():
+    line = line.decode("utf-8")
+    if line.startswith("data: "):
+        data = line[6:]
+        if data == "[DONE]": break
+        chunk = json.loads(data)
+        content = chunk["choices"][0]["delta"].get("content", "")
+        print(content, end="", flush=True)</code></pre>
+  </div>
+  <div id="tab-openai" class="tab-content">
+<pre><code>// Node.js
+import OpenAI from 'openai';
+const client = new OpenAI({ baseURL: 'http://127.0.0.1:3000/v1', apiKey: 'not-needed' });
+const stream = await client.chat.completions.create({
+  model: 'auto',
+  messages: [{ role: 'user', content: '你好' }],
+  stream: true,
+});
+for await (const chunk of stream) {
+  process.stdout.write(chunk.choices[0]?.delta?.content || '');
+}</code></pre>
+<pre><code># Python
+from openai import OpenAI
+client = OpenAI(base_url="http://127.0.0.1:3000/v1", api_key="not-needed")
+stream = client.chat.completions.create(
+    model="auto",
+    messages=[{"role": "user", "content": "你好"}],
+    stream=True,
+)
+for chunk in stream:
+    print(chunk.choices[0].delta.content or "", end="", flush=True)</code></pre>
+  </div>
+
+  <h3>请求参数</h3>
+  <div class="card">
+    <table style="width:100%;font-size:14px;border-collapse:collapse">
+      <thead><tr style="border-bottom:1px solid var(--border)">
+        <th style="text-align:left;padding:8px">参数</th><th style="text-align:left;padding:8px">类型</th><th style="text-align:left;padding:8px">默认</th><th style="text-align:left;padding:8px">说明</th>
+      </tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px"><code class="inline">model</code></td><td style="padding:8px">string</td><td style="padding:8px"><code class="inline">"auto"</code></td><td style="padding:8px">模型 ID</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px"><code class="inline">messages</code></td><td style="padding:8px">array</td><td style="padding:8px">—</td><td style="padding:8px">OpenAI 格式消息数组</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px"><code class="inline">stream</code></td><td style="padding:8px">boolean</td><td style="padding:8px"><code class="inline">true</code></td><td style="padding:8px">是否流式返回</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px"><code class="inline">conversationId</code></td><td style="padding:8px">string</td><td style="padding:8px">—</td><td style="padding:8px">续接对话时传入</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px"><code class="inline">dir</code></td><td style="padding:8px">string</td><td style="padding:8px">—</td><td style="padding:8px">Agent 工作目录（绝对路径）。留空则用服务器 <code class="inline">--cwd</code> 默认值</td></tr>
+        <tr><td style="padding:8px"><code class="inline">working_dir</code></td><td style="padding:8px">string</td><td style="padding:8px">—</td><td style="padding:8px">同 <code class="inline">dir</code>，别名</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════════ Setup Guide ════════ -->
+<div class="section" id="setup">
+  <h2><span class="num">⚙️</span> 登录与配置</h2>
+  <div class="steps">
+    <div class="step">
+      <h4>方式一：扫码登录（推荐）</h4>
+      <p>在上方“扫码登录”区域点击“打开登录页面”，用手机美团 APP 扫码即可完成登录。</p>
+    </div>
+    <div class="step">
+      <h4>方式二：通过 CatPaw 桌面应用登录</h4>
+      <p>启动 CatPaw Electron 桌面应用并使用 SSO 登录，反代服务通过命名管道复用其登录状态。</p>
+      <div class="warn">⚠️ 使用方式二时，CatPaw 应用必须保持运行。</div>
+    </div>
+    <div class="step">
+      <h4>设置工作目录（重要）</h4>
+      <p>Agent 需要知道你的项目路径才能访问本地文件。有三种方式指定：</p>
+      <ul style="padding-left:20px;color:var(--text-dim);font-size:14px;line-height:2">
+        <li><strong>请求体参数</strong>：在 <code class="inline">/v1/chat/completions</code> 请求体中传 <code class="inline">"dir":"D:/myproject"</code></li>
+        <li><strong>HTTP 头</strong>：添加请求头 <code class="inline">X-Working-Directory: D:/myproject</code></li>
+        <li><strong>服务器启动参数</strong>：<code class="inline">node server.mjs --cwd D:/myproject</code>（全局默认）</li>
+      </ul>
+      <div class="warn">⚠️ Agent 的文件访问权限由 CatPaw 设置中的<strong>沙箱模式</strong>控制：<br>
+        • <code class="inline">workspace-write</code>（默认）：仅允许在指定工作目录内读写<br>
+        • <code class="inline">full-access</code>：允许访问整个文件系统</div>
+    </div>
+    <div class="step">
+      <h4>公网部署安全配置（重要）</h4>
+      <p>部署到公网服务器时，务必配置以下安全参数：</p>
+<pre><code>node server.mjs \
+  --api-key your-secret-key-here \
+  --allowed-dirs D:/projects,D:/workspace \
+  --callback-url https://your-domain.com/callback</code></pre>
+      <ul style="padding-left:20px;color:var(--text-dim);font-size:14px;line-height:2">
+        <li><strong>--api-key</strong>：设置 API Key，客户端需传 <code class="inline">Authorization: Bearer your-secret-key-here</code></li>
+        <li><strong>--allowed-dirs</strong>：限制可访问的工作目录（逗号分隔），防止任意目录访问</li>
+        <li><strong>--callback-url</strong>：扫码登录回调地址（公网域名），如 <code class="inline">https://your-domain.com/callback</code></li>
+      </ul>
+      <div class="warn">⚠️ 公网部署<strong>必须</strong>设置 <code class="inline">--api-key</code>，否则任何人都可以使用你的 API！<br>
+        建议配合 Nginx 反向代理 + HTTPS 使用，并通过 <code class="inline">--allowed-dirs</code> 限制可访问的目录。</div>
+    </div>
+    <div class="step">
+      <h4>创建 evaluation 配置文件（方式二必需）</h4>
+<pre><code>文件路径: C:\Users\&lt;用户名&gt;\.meituan-catpaw\paw.json
+文件内容: {"evaluation":true}</code></pre>
+    </div>
+    <div class="step">
+      <h4>启动反代服务器</h4>
+<pre><code>node server.mjs</code></pre>
+    </div>
+    <div class="step">
+      <h4>对接客户端</h4>
+      <div class="card" style="margin-top:8px">
+        <table style="width:100%;font-size:14px;border-collapse:collapse">
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px;font-weight:600">API Base URL</td><td style="padding:8px"><code class="inline" id="baseUrl2">http://127.0.0.1:3000/v1</code></td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px;font-weight:600">API Key</td><td style="padding:8px">如启用 <code class="inline">--api-key</code> 则填对应值（<code class="inline">Authorization: Bearer &lt;key&gt;</code>），否则任意</td></tr>
+          <tr><td style="padding:8px;font-weight:600">模型</td><td style="padding:8px"><code class="inline">auto</code> 或其他模型 ID</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  <h3>架构原理</h3>
+  <div class="card">
+<pre><code>┌──────────────────────────────────────────────────────────┐
+│  客户端 (ChatBox / LobeChat / curl / OpenAI SDK)        │
+│         ↓ HTTP POST /v1/chat/completions                 │
+│  反代服务器 (server.mjs, localhost:3000)                  │
+│         ↓ HTTP over Named Pipe (\\.\pipe\paw)            │
+│  CatPaw Electron 应用 (GUI, 已登录, 复用 SSO 认证)       │
+│         ↓ MWS Auth + 内置工具执行                         │
+│  CatPaw 后端 (美团 AI 服务)                              │
+└──────────────────────────────────────────────────────────┘</code></pre>
+  </div>
+</div>
+
+<!-- ════════ Config Panel (API Key) ════════ -->
+<div class="section" id="config-panel">
+  <h2><span class="num">🔒</span> 安全配置</h2>
+  <p style="color:var(--text-dim);margin-bottom:20px">配置 API Key 认证和目录白名单。设置后立即生效，无需重启服务。</p>
+
+  <div class="config-panel">
+    <!-- API Key -->
+    <div class="config-field">
+      <div class="label">🔑 API Key <span class="config-badge" id="apiKeyBadge">检测中...</span></div>
+      <div class="desc">客户端调用 API 时需传入 <code class="inline" style="font-size:12px">Authorization: Bearer &lt;your-key&gt;</code>。留空则不启用认证（仅限本地使用）。</div>
+      <div class="row" style="margin-bottom:8px">
+        <input type="password" id="apiKeyInput" placeholder="输入新的 API Key（至少 8 位字符）" style="flex:1">
+        <button class="btn btn-secondary" onclick="toggleApiKeyVisibility()" style="white-space:nowrap" id="apiKeyToggleBtn">👁 显示</button>
+      </div>
+      <div id="apiKeyCurrent" style="font-size:13px;color:var(--text-dim);margin-bottom:8px"></div>
+      <button class="btn btn-primary" onclick="saveApiKey()">💾 保存 API Key</button>
+      <div class="config-msg" id="apiKeyMsg"></div>
+    </div>
+
+    <!-- Allowed Directories -->
+    <div class="config-field">
+      <div class="label">📂 工作目录白名单</div>
+      <div class="desc">限制 Agent 可访问的目录路径，逗号分隔。留空则允许访问所有目录。</div>
+      <input type="text" id="allowedDirsInput" placeholder="例如: D:/projects,D:/workspace,C:/Users/xxx">
+      <div id="allowedDirsCurrent" style="font-size:13px;color:var(--text-dim);margin-top:8px;margin-bottom:8px"></div>
+      <button class="btn btn-primary" onclick="saveAllowedDirs()">💾 保存目录白名单</button>
+      <div class="config-msg" id="dirsMsg"></div>
+    </div>
+
+    <!-- Current Status -->
+    <div class="config-field">
+      <div class="label">📊 当前状态</div>
+      <table style="width:100%;font-size:14px;border-collapse:collapse">
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px;color:var(--text-dim)">API Key 状态</td><td style="padding:8px"><span id="statusApiKey">加载中...</span></td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px;color:var(--text-dim)">目录白名单</td><td style="padding:8px"><span id="statusDirs">加载中...</span></td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:8px;color:var(--text-dim)">配置来源</td><td style="padding:8px"><span id="statusSource">-</span></td></tr>
+        <tr><td style="padding:8px;color:var(--text-dim)">配置文件</td><td style="padding:8px;font-family:var(--mono);font-size:12px" id="statusConfigPath">-</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ Models ════════ -->
+<div class="section" id="models">
+  <h2><span class="num">🤖</span> 模型列表</h2>
+  <div class="model-grid" id="modelGrid"><div class="model-card" style="text-align:center;color:var(--text-dim)">加载中...</div></div>
+</div>
+
+</div>
+
+<script>
+// ─── State ──
+let isStreaming = false;
+let abortController = null;
+let qrPollTimer = null;
+let qrSid = null;
+let apiKeyVisible = false;
+let currentApiKey = ''; // 当前使用的 API Key
+
+// ─── Config Panel (API Key) ──
+async function loadConfig() {
+  try {
+    const res = await fetch('/api/config');
+    const data = await res.json();
+    if (!data.success) return;
+    var d = data.data;
+
+    // 保存当前 API Key 用于后续请求
+    if (d.apiKeySet && d.apiKey) {
+      // 从脱敏格式提取实际 key（如果服务器返回的是掩码）
+      // 实际上服务器只返回掩码，我们需要从输入框或本地存储获取
+      // 这里我们依赖用户输入，或者如果未设置则尝试空请求
+    }
+
+    // API Key badge
+    var badge = document.getElementById('apiKeyBadge');
+    if (d.apiKeySet) {
+      badge.textContent = '已启用';
+      badge.className = 'config-badge on';
+      document.getElementById('apiKeyCurrent').textContent = '当前 Key: ' + d.apiKey;
+      document.getElementById('statusApiKey').innerHTML = '<span style="color:var(--green)">✅ 已设置</span> (' + d.apiKey + ')';
+    } else {
+      badge.textContent = '未启用';
+      badge.className = 'config-badge off';
+      document.getElementById('apiKeyCurrent').textContent = '⚠️ 当前未设置 API Key，所有请求无需认证';
+      document.getElementById('statusApiKey').innerHTML = '<span style="color:var(--red)">❌ 未设置</span>（任何人可访问）';
+    }
+
+    // Allowed dirs
+    if (d.allowedDirs && d.allowedDirs.length > 0) {
+      document.getElementById('allowedDirsInput').value = d.allowedDirs.join(', ');
+      document.getElementById('allowedDirsCurrent').textContent = '当前白名单: ' + d.allowedDirs.join(', ');
+      document.getElementById('statusDirs').textContent = d.allowedDirs.join(', ');
+    } else {
+      document.getElementById('allowedDirsCurrent').textContent = '当前未限制（允许所有目录）';
+      document.getElementById('statusDirs').textContent = '未限制（允许所有目录）';
+    }
+
+    // Source
+    document.getElementById('statusSource').textContent = d.source === 'config-file' ? '配置文件 (config.json)' : '命令行参数 (--api-key)';
+    document.getElementById('statusConfigPath').textContent = '~/.meituan-catpaw/config.json';
+
+  } catch(e) {
+    console.error('加载配置失败:', e);
+  }
+}
+
+function toggleApiKeyVisibility() {
+  apiKeyVisible = !apiKeyVisible;
+  var input = document.getElementById('apiKeyInput');
+  var btn = document.getElementById('apiKeyToggleBtn');
+  if (apiKeyVisible) {
+    input.type = 'text';
+    btn.textContent = '🙈 隐藏';
+  } else {
+    input.type = 'password';
+    btn.textContent = '👁 显示';
+  }
+}
+
+async function saveApiKey() {
+  var key = document.getElementById('apiKeyInput').value.trim();
+  var msgEl = document.getElementById('apiKeyMsg');
+
+  if (!key) {
+    msgEl.className = 'config-msg error';
+    msgEl.textContent = '❌ 请输入 API Key';
+    return;
+  }
+  if (key.length < 8) {
+    msgEl.className = 'config-msg error';
+    msgEl.textContent = '❌ API Key 至少需要 8 个字符';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey: key }),
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      msgEl.className = 'config-msg success';
+      msgEl.textContent = '✅ API Key 已保存并立即生效！客户端需使用 Authorization: Bearer ' + key;
+      document.getElementById('apiKeyInput').value = '';
+      await loadConfig(); // 刷新状态
+    } else {
+      msgEl.className = 'config-msg error';
+      msgEl.textContent = '❌ ' + (data.error || '保存失败');
+    }
+  } catch(e) {
+    msgEl.className = 'config-msg error';
+    msgEl.textContent = '❌ 网络错误: ' + e.message;
+  }
+}
+
+async function saveAllowedDirs() {
+  var raw = document.getElementById('allowedDirsInput').value.trim();
+  var msgEl = document.getElementById('dirsMsg');
+
+  var dirs = raw ? raw.split(',').map(function(d) { return d.trim(); }).filter(Boolean) : [];
+
+  try {
+    const res = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ allowedDirs: dirs }),
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      msgEl.className = 'config-msg success';
+      msgEl.textContent = '✅ 目录白名单已保存！' + (dirs.length === 0 ? '（已清除限制，允许所有目录）' : '');
+      await loadConfig();
+    } else {
+      msgEl.className = 'config-msg error';
+      msgEl.textContent = '❌ ' + (data.error || '保存失败');
+    }
+  } catch(e) {
+    msgEl.className = 'config-msg error';
+    msgEl.textContent = '❌ 网络错误: ' + e.message;
+  }
+}
+
+// ─── Init ──
+async function init() {
+  const base = location.origin;
+  document.getElementById('baseUrl').textContent = base;
+  document.getElementById('baseUrl2').textContent = base + '/v1';
+
+  await checkHealth();
+  await loadModels();
+  await checkAuthStatus();
+  await loadConfig();
+}
+
+// ─── Health check ──
+async function checkHealth() {
+  try {
+    const res = await fetch('/health');
+    const data = await res.json();
+    const dot = document.getElementById('navDot');
+    const status = document.getElementById('navStatus');
+    const badge = document.getElementById('navBadge');
+    if (data.catpawRunning) {
+      dot.style.background = 'var(--green)';
+      dot.style.boxShadow = '0 0 8px var(--green)';
+      status.textContent = 'CatPaw 已连接';
+      badge.textContent = 'ONLINE';
+      badge.className = 'badge ok';
+    } else {
+      dot.style.background = 'var(--red)';
+      dot.style.boxShadow = '0 0 8px var(--red)';
+      status.textContent = 'CatPaw 未连接';
+      badge.textContent = 'OFFLINE';
+      badge.className = 'badge err';
+    }
+  } catch(e) {
+    document.getElementById('navStatus').textContent = '服务器未响应';
+    document.getElementById('navBadge').textContent = 'ERROR';
+    document.getElementById('navBadge').className = 'badge err';
+  }
+}
+
+// ─── Load models ──
+async function loadModels() {
+  try {
+    const res = await fetch('/v1/models');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const grid = document.getElementById('modelGrid');
+    const select = document.getElementById('modelSelect');
+    grid.innerHTML = '';
+    select.innerHTML = '';
+    if (!data.data || data.data.length === 0) {
+      grid.innerHTML = '<div class="model-card" style="grid-column:1/-1;text-align:center;color:var(--text-dim)">暂无可用模型</div>';
+      return;
+    }
+    data.data.forEach(function(m) {
+      var card = document.createElement('div');
+      card.className = 'model-card';
+      card.onclick = function() { select.value = m.id; };
+      var catpaw = m._catpaw || {};
+      card.innerHTML = '<div class="id">'+m.id+'</div><div class="name">'+(catpaw.name||m.id)+'</div><div class="desc">'+(catpaw.description||'')+'</div>';
+      grid.appendChild(card);
+      var opt = document.createElement('option');
+      opt.value = m.id;
+      opt.textContent = m.id + ' — ' + (catpaw.name||m.id);
+      select.appendChild(opt);
+    });
+    select.value = 'auto';
+  } catch(e) {
+    document.getElementById('modelGrid').innerHTML = '<div class="model-card" style="grid-column:1/-1;text-align:center;color:var(--red)">加载失败: '+e.message+'</div>';
+  }
+}
+
+// ─── Auth Status ──
+async function checkAuthStatus() {
+  try {
+    const res = await fetch('/api/auth/status');
+    const data = await res.json();
+    updateAuthUI(data);
+  } catch {}
+}
+
+function updateAuthUI(data) {
+  var el = document.getElementById('loginStatusContent');
+  if (data.loggedIn) {
+    var name = data.user?.userName || data.user?.name || '未知用户';
+    var uid = data.user?.userId || '';
+    el.innerHTML = '<div class="user-info"><div class="user-avatar">'+name.charAt(0).toUpperCase()+'</div><div><div style="font-weight:600">'+name+'</div><div style="font-size:12px;color:var(--text-dim)">UID: '+uid+'</div><div style="font-size:12px;color:var(--text-dim)">Token: '+data.token+'</div></div></div>';
+  } else {
+    el.innerHTML = '<p style="color:var(--text-dim)">尚未登录，请点击左侧按钮生成二维码。</p>';
+  }
+}
+
+// ─── QR Login ──
+async function startQRLogin() {
+  var btn = document.getElementById('qrBtn');
+  var frame = document.getElementById('qrFrame');
+  var status = document.getElementById('qrStatus');
+  
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 正在发起...';
+  status.textContent = '正在获取登录链接...';
+  
+  // Clear old timer
+  if (qrPollTimer) { clearInterval(qrPollTimer); qrPollTimer = null; }
+  
+  try {
+    const res = await fetch('/api/login/start', { method: 'POST' });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Failed to start login');
+    
+    var loginUrl = data.data.loginUrl;
+    qrSid = data.data.sid;
+    
+    // Open login page in new window
+    window.open(loginUrl, '_blank', 'width=800,height=600');
+    
+    frame.innerHTML = '<div style="font-size:48px">⏳</div><div style="color:var(--text-dim);text-align:center">登录页面已打开<br>请在新窗口中扫码登录</div>';
+    status.textContent = '等待扫码确认...';
+    btn.innerHTML = '🔄 重新打开';
+    btn.disabled = false;
+    
+    // Start polling
+    pollLoginStatus(qrSid);
+  } catch(e) {
+    status.textContent = '错误: ' + e.message;
+    btn.innerHTML = '🚀 打开登录页面';
+    btn.disabled = false;
+    frame.innerHTML = '<div style="font-size:48px">❌</div><div style="color:var(--red);text-align:center">' + e.message + '</div>';
+  }
+}
+
+async function pollLoginStatus(sid) {
+  if (qrPollTimer) clearInterval(qrPollTimer);
+  
+  var attempts = 0;
+  qrPollTimer = setInterval(async function() {
+    attempts++;
+    if (attempts > 300) { // 5 min timeout
+      clearInterval(qrPollTimer);
+      qrPollTimer = null;
+      document.getElementById('qrStatus').textContent = '⏰ 登录超时，请重新生成二维码';
+      return;
+    }
+    
+    try {
+      const res = await fetch('/api/login/poll?sid=' + sid);
+      const data = await res.json();
+      if (!data.success) return;
+      
+      var st = data.data;
+      var statusEl = document.getElementById('qrStatus');
+      
+      if (st.status === 'success') {
+        clearInterval(qrPollTimer);
+        qrPollTimer = null;
+        statusEl.innerHTML = '✅ 登录成功！';
+        if (st.userInfo) {
+          statusEl.innerHTML += '<br>欢迎，' + (st.userInfo.userName || st.userInfo.name || '用户');
+        }
+        await checkAuthStatus();
+      } else if (st.status === 'timeout') {
+        clearInterval(qrPollTimer);
+        qrPollTimer = null;
+        statusEl.textContent = '⏰ 登录超时，请重新生成二维码';
+      } else {
+        // Still pending
+        var dots = '.'.repeat(attempts % 4);
+        statusEl.textContent = '等待扫码确认' + dots + ' (' + st.elapsed + 's)';
+      }
+    } catch(e) {
+      // Continue polling
+    }
+  }, 1500);
+}
+
+// ─── Stream toggle ──
+document.getElementById('streamToggle').addEventListener('click', function() {
+  this.classList.toggle('on');
+  document.getElementById('streamVal').value = this.classList.contains('on');
+});
+
+// ─── Send message ──
+async function sendMessage() {
+  var message = document.getElementById('messageInput').value.trim();
+  if (!message) return;
+  var model = document.getElementById('modelSelect').value;
+  var stream = document.getElementById('streamToggle').classList.contains('on');
+  var convId = document.getElementById('convId').value.trim();
+  var btn = document.getElementById('sendBtn');
+  var icon = document.getElementById('sendIcon');
+  var output = document.getElementById('outputArea');
+  var latency = document.getElementById('latencyInfo');
+
+  if (isStreaming) {
+    if (abortController) abortController.abort();
+    isStreaming = false;
+    btn.classList.remove('btn-secondary'); btn.classList.add('btn-primary');
+    icon.textContent = '▶';
+    return;
+  }
+
+  isStreaming = true;
+  btn.classList.remove('btn-primary'); btn.classList.add('btn-secondary');
+  icon.innerHTML = '<span class="spinner"></span>';
+  output.innerHTML = '';
+  var startTime = Date.now();
+
+  var body = { model: model, messages: [{ role: 'user', content: message }], stream: stream };
+  if (convId) body.conversationId = convId;
+
+  // 读取 API Key
+  var apiKey = document.getElementById('playgroundApiKey').value.trim();
+  var headers = { 'Content-Type': 'application/json' };
+  if (apiKey) {
+    headers['Authorization'] = 'Bearer ' + apiKey;
+  }
+
+  try {
+    if (stream) {
+      abortController = new AbortController();
+      const res = await fetch('/v1/chat/completions', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(body),
+        signal: abortController.signal,
+      });
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      var buffer = '', fullContent = '', eventCount = 0;
+      while (true) {
+        var result = await reader.read();
+        if (result.done) break;
+        buffer += decoder.decode(result.value, { stream: true });
+        var lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i];
+          if (!line.startsWith('data: ')) continue;
+          var dataStr = line.slice(6).trim();
+          if (dataStr === '[DONE]') continue;
+          try {
+            var chunk = JSON.parse(dataStr);
+            eventCount++;
+            if (chunk._catpaw && chunk._catpaw.conversationId) {
+              if (!convId) document.getElementById('convId').value = chunk._catpaw.conversationId;
+            }
+            var delta = chunk.choices && chunk.choices[0] ? chunk.choices[0].delta : null;
+            if (delta && delta.content) {
+              fullContent += delta.content;
+              renderOutput(output, fullContent);
+            }
+            if (delta && delta.reasoning_content) {
+              renderOutput(output, fullContent + '<span class="reasoning">' + escapeHtml(delta.reasoning_content) + '</span>');
+            }
+            if (chunk.choices && chunk.choices[0] && chunk.choices[0].finish_reason === 'stop') {
+              var elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+              latency.textContent = eventCount + ' events · ' + elapsed + 's';
+            }
+          } catch(e2) {}
+        }
+      }
+      renderOutput(output, fullContent, true);
+      var elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      latency.textContent = eventCount + ' events · ' + elapsed + 's';
+    } else {
+      const res = await fetch('/v1/chat/completions', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (data.error) {
+        output.innerHTML = '<span class="error">❌ ' + data.error.message + '</span>';
+      } else {
+        var content = (data.choices && data.choices[0] && data.choices[0].message) ? data.choices[0].message.content : '(空)';
+        renderOutput(output, content, true);
+        if (data._catpaw && data._catpaw.conversationId) {
+          document.getElementById('convId').value = data._catpaw.conversationId;
+        }
+        var elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        latency.textContent = elapsed + 's';
+      }
+    }
+  } catch(e) {
+    if (e.name === 'AbortError') {
+      output.innerHTML += '<span class="error">\n\n[已中断]</span>';
+    } else {
+      output.innerHTML = '<span class="error">❌ ' + e.message + '</span>';
+    }
+  } finally {
+    isStreaming = false;
+    btn.classList.remove('btn-secondary'); btn.classList.add('btn-primary');
+    icon.textContent = '▶';
+    abortController = null;
+  }
+}
+
+function renderOutput(el, content, done) {
+  if (done) {
+    el.innerHTML = escapeHtml(content);
+  } else {
+    el.innerHTML = escapeHtml(content) + '<span class="cursor">▋</span>';
+  }
+  el.scrollTop = el.scrollHeight;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function clearOutput() {
+  document.getElementById('outputArea').innerHTML = '<span style="color:var(--text-dim)">点击"发送"开始测试...</span>';
+  document.getElementById('latencyInfo').textContent = '';
+  document.getElementById('convId').value = '';
+}
+
+function switchTab(e, id) {
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+  e.target.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+
+// Nav scroll
+document.querySelectorAll('nav .links a').forEach(function(a) {
+  a.addEventListener('click', function(e) {
+    e.preventDefault();
+    document.querySelectorAll('nav .links a').forEach(function(l) { l.classList.remove('active'); });
+    this.classList.add('active');
+    var target = document.getElementById(this.dataset.target);
+    if (target) target.scrollIntoView({ behavior: 'smooth' });
+  });
+});
+
+// Keyboard shortcut
+document.getElementById('messageInput').addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+// Start
+init();
+</script>
+</body>
+</html>
