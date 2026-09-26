@@ -9,8 +9,8 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
 
-const PORT = process.env.PORT || 3000;
-const DATA_DIR = '/opt/catpaw-pure-api/data';
+const PORT = process.env.PORT || 33000;
+const DATA_DIR = process.env.DATA_DIR || join(process.cwd(), 'data');
 const AUTH_FILE = join(DATA_DIR, 'auth.json');
 
 const BASE_URL = 'https://nocode.cn';

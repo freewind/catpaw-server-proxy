@@ -41,12 +41,12 @@ PORT=8080 node server-standalone.mjs
 
 ### 3. 配置 Token
 
-访问 `http://localhost:3000/` 并粘贴你的 X-Auth-Token。
+访问 `http://localhost:33000/` 并粘贴你的 X-Auth-Token。
 
 ### 4. 使用 API
 
 ```bash
-curl http://localhost:3000/v1/chat/completions \
+curl http://localhost:33000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer any-api-key" \
   -d '{
@@ -61,7 +61,7 @@ curl http://localhost:3000/v1/chat/completions \
 ### 直接部署
 
 ```bash
-# 默认端口 3000
+# 默认端口 33000
 npm start
 
 # 自定义端口
@@ -75,7 +75,7 @@ PORT=8080 npm start
 docker build -t catpaw-server-proxy .
 
 # 运行容器
-docker run -d -p 3000:3000 -v $(pwd)/data:/app/data catpaw-server-proxy
+docker run -d -p 33000:33000 -v $(pwd)/data:/app/data catpaw-server-proxy
 ```
 
 ### Docker Compose 部署
@@ -94,7 +94,8 @@ docker-compose up -d
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `PORT` | 服务端口 | `3000` |
+| `PORT` | 服务端口 | `33000` |
+| `DATA_DIR` | Token 数据目录（存放 `auth.json`） | 项目内 `./data` |
 | `API_KEY` | API 认证密钥 | 无 |
 
 ## 文件结构
@@ -103,12 +104,13 @@ docker-compose up -d
 .
 ├── server-standalone.mjs   # 主服务器（独立部署版）
 ├── public/
-│   └── index.html          # Web UI
+│   └── index.html          # 静态页（server 未引用）
 ├── package.json
-├── Dockerfile              # Docker 配置
-├── docker-compose.yml      # Docker Compose 配置
+├── .gitignore
 └── README.md
 ```
+
+Token 数据默认写入项目内的 `data/auth.json`，可用 `DATA_DIR` 覆盖。
 
 ## 许可证
 
